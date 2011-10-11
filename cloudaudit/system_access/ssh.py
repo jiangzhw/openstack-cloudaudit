@@ -1,113 +1,72 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+#
+# Copyright 2011 Piston Cloud Computing, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 
-__author__ = 'joshd'
-
-
-import novaclient
 import paramiko
-import libssh2
-import cmd
-import types
 
-class SystemAccess_Ssh(object):
-
-    """
-    A controller that produces information on the Glance API versions.
-    """
-
-    def __init__(self):
-        self.openstackclient = None
-        self.clients = { }
-        self.osmap = { }
+from cloudaudit.system_access import base
 
 
-    def getAllSshSystems(self):
-#        self.openstackclient  = novaclient.OpenStackClient("joshd", "f2940ebc-4808-4846-9a47-b71ed77b6fdc", "http://127.0.0.1:8774/v1.0/")
-        self.openstackclient  = novaclient.OpenStack("joshd", "f82d944c-84f7-4a60-8f61-f0ca4b54f860", "http://127.0.0.1:8774/v1.0/")
+class SSHAccessor(base.BaseAccessor):
+    def __init__(self, private_key_file=None, hosts=None):
+        super(self.__class__, self).__init__(hosts)
 
-        list = self.openstackclient.images.list()
+        self.os_map = {}
+        self.private_key = private_key_file
 
-        list = self.openstackclient.servers.list()
+        self.clients = dict([(host, self.get_client(host)) for host in hosts])
 
-        newlist = []
+    def get_client(self,host, username='chris', private_key=None):
+        # todo(chris): Implement caching as a decorator.
 
-        for server in list:
-            if len(server.addresses['private']) > 0:
-                newlist.append(server)
+        if not private_key:
+            private_key = self.private_key
+        private_key = paramiko.RSAKey.from_private_key_file(private_key)
 
-        list = []
-
-        for server in newlist:
-            self.testSsh(server.addresses['private'][0], "", "")
-
-        return newlist
-
-    def testSsh(self, ip, key, password):
-
-        myclient = self.getSshClient(ip, key, password)
-        if myclient == None:
-            return False
-
-        return True
-
-
-    def getSshClient(self, ip, key, password):
-
-        if ip in self.clients:
-            return self.clients[ip]
-        
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        # XXX TODO:  don't hardcode this
-        privatekeyfile = "/home/joshd/NOVACREDS/privkey"
-        mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-        public_host_key = paramiko.RSAKey(data=str(mykey))
-        client.connect(ip, pkey=mykey, username="ubuntu")
-
-        self.clients[ip] = client
-
+        client.connect(host, pkey=private_key, username=username)
         return client
 
-    def runSshCommnad(self, client, command):
-        o_stdin, o_stdout, o_stderr = client.exec_command(command)
+    def execute(self, *command, **kwargs):
+        evaluator = kwargs.get('evaluator', lambda x: x)
+        clients = kwargs.get('clients', self.clients)
 
-        return o_stdin, o_stdout, o_stderr
+        command = str.join(' ', command)
 
-    def getOS(self, server):
-        servers = [ ]
-        retvals = { }
-        if isinstance(server, types.ListType):
-            for srv in server:
-                if len(srv.addresses['private']) > 0:
-                    servers.append(srv.addresses['private'][0])
-        else:
-            servers = [ server.addresses['private'][0] ]
+        results = []
+        for hosts, client in clients.items():
+            try:
+                stdin, stdout, stderr = client.exec_command(command)
 
-        for srv in servers:
+                results.append(*[evaluator(l) for l in stdout.readlines()])
+            except paramiko.SSHException, e:
+                #self.log.warning(e)
+                pass
+        return results
 
-            if srv in self.osmap:
-                retvals[srv] = osmap[srv]
-                continue
+    def get_operating_system(self, host):
+        if not host in self.clients.keys():
+            self.clients[host] = self.get_client(host)
 
-            lines = self.getCommandOutput(srv, "uname")
-            if len(lines) > 0:
-                self.osmap[srv] = lines[0].strip()
-                retvals[srv] = lines[0].strip()
+        _os = self.os_map.get(host)
+        if _os:
+            return _os
 
-        return retvals
-
-    def getCommandOutput(self, ip, command):
-
-        client = self.getSshClient(ip, "", "")
-
-        o_stdin, o_stdout, o_stderr = self.runSshCommnad(client, command)
-
-        lines = o_stdout.readlines()
-
-        return lines
-
-
-
-
-
-
+        _os = self.execute('uname', evaluator=lambda x: x.strip(),
+                                    clients={host: self.clients[host]})
+        self.os_map[host] = _os
+        return _os

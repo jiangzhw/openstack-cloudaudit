@@ -15,7 +15,7 @@
 # limitations under the License.
 
 
-from cloudaudit import log
+# from cloudaudit import log
 
 
 class BaseAccessor(object):
@@ -24,7 +24,7 @@ class BaseAccessor(object):
             hosts = []
 
         self.hosts = hosts
-        self.log = log.get_logger('cloudaudit')
+        # self.log = log.get_logger('cloudaudit')
 
     def execute(self, *command):
         raise NotImplementedError
