@@ -1,6 +1,7 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
-
-# Copyright 2011 OpenStack LLC.
+#
+# Copyright 2011 Piston Cloud Computing, Inc.
+#
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -16,18 +17,12 @@
 #    under the License.
 
 
-"""
-Base class for CloudAudit control implementations
-"""
-
-
-import cloudaudit.api.Evidence_MaxLoginAttempts
 from xml.dom.minidom import Document
 from cloudaudit.control import base
+from cloudaudit.evidence import max_login_attempts
 
 
-class nist80053_ac7(base.BaseController):
-
+class NIST_800_53_ac7(base.BaseControl):
     """
     Control evidence gathering implementation for NIST 800-53 control AC-7
 
@@ -50,29 +45,23 @@ class nist80053_ac7(base.BaseController):
         local or network connection.
     """
 
+    control_title = "NIS 800-53 AC-7 Maximum Unsuccessful Logins",
+    control_id = "ac/7",
+    control_subtitle = "Max Unsuccessful Logins before Lockout",
+
     def __init__(self):
-        super(nist80053_ac7, self).__init__(evidence_gatherer=None,
-        regime_str="NIS 800-53",
-        control_title="NIS 800-53 AC-7 Maximum Unsuccessful Logins",
-        regime="gov/nist/crc/sp800-53",
-        regime_version="r3",
-        control_id="ac/7",
-        control_subtitle="Max Unsuccessful Logins before Lockout",
-        time_updated=None)
-
+        super(self.__class__, self).__init__()
         self.xml_inventory = None
-
         self.max_logins = None
 
     def get_evidence(self, req):
         if self.entries is None:
             self.entries = []
 
-        super(nist80053_ac7, self).get_evidence(req)
+        super(NIST_800_53_ac7, self).get_evidence(req)
 
         if self.evidence_gatherer is None:
-            self.evidence_gatherer = cloudaudit.api.Evidence_MaxLoginAttempts.\
-            Evidence_MaxLoginAttempts()
+            self.evidence_gatherer = max_login_attempts.MaxLoginAttempts
 
         self.maxlogins = self.evidence_gatherer.get_evidence()
 

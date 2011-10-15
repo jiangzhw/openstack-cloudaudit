@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import paramiko
 
 from cloudaudit.system_access import base
@@ -29,7 +28,7 @@ class SSHAccessor(base.BaseAccessor):
 
         self.clients = dict([(host, self.get_client(host)) for host in hosts])
 
-    def get_client(self,host, username='chris', private_key=None):
+    def get_client(self, host, username='chris', private_key=None):
         # todo(chris): Implement caching as a decorator.
 
         if not private_key:
@@ -43,16 +42,25 @@ class SSHAccessor(base.BaseAccessor):
 
     def execute(self, *command, **kwargs):
         evaluator = kwargs.get('evaluator', lambda x: x)
+        hosts = kwargs.get('hosts', [])
         clients = kwargs.get('clients', self.clients)
+
+        if hosts:
+            clients = dict([(host, self.clients[host]) for host in hosts]) 
 
         command = str.join(' ', command)
 
         results = []
-        for hosts, client in clients.items():
+        for host, client in clients.items():
             try:
                 stdin, stdout, stderr = client.exec_command(command)
 
-                results.append(*[evaluator(l) for l in stdout.readlines()])
+                evaluated = [evaluator(l) for l in stdout.readlines()]
+                evaluated = [x for x in evaluated if x is not None]
+                if len(evaluated):
+                    evaluated = evaluated[0]
+
+                results.append(evaluated)
             except paramiko.SSHException, e:
                 #self.log.warning(e)
                 pass

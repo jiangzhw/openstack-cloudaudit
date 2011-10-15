@@ -23,14 +23,13 @@ Base class for CloudAudit control implementations
 from xml.dom.minidom import Document
 
 
-class BaseController(object):
+class BaseControl(object):
 
     """
     A controller that produces information on the Glance API versions.
     """
 
-    def __init__(self, evidence_gatherer=None,
-                 control_title="Not Set",
+    def __init__(self, evidence_gatherer=None, control_title="Not Set",
                  regime="Not Set",
                  regime_version="Not Set",
                  control_id="Not Set",
