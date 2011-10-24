@@ -15,9 +15,6 @@
 # limitations under the License.
 
 
-# from cloudaudit import log
-
-
 class BaseAccessor(object):
     def __init__(self, hosts=None):
         if not hosts:

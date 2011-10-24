@@ -19,7 +19,9 @@ import webob.exc
 
 #from cloudaudit import registry
 from openstack.common import exception
+#import cloudaudit.api.ControlRegistry
 
+# TODO JoshD:   Init Registry here
 
 logger = logging.getLogger('cloudaudit.api')
 
@@ -61,3 +63,6 @@ class BaseController(object):
             raise webob.exc.HTTPNotFound(
                     msg, request=request, content_type='text/plain')
         return image
+
+
+#CONTROL_REGISTRY = cloudaudit.api.ControlRegistry.ControlRegistry()

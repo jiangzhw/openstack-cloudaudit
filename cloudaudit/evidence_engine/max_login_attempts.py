@@ -28,13 +28,13 @@ def pam_login_deny(x):
 
 def od_login_deny(x):
     try:
-        return int(re.search('^  *(\d+)', x).groups()[0]) 
+        return int(re.search('^  *(\d+)', x).groups()[0])
     except AttributeError:
         return None
 
 
 class MaxLoginAttempts(base.BaseEvidenceGatherer):
-    def __init__(self, hosts):
+    def __init__(self, hosts=None):
         super(MaxLoginAttempts, self).__init__(ssh.SSHAccessor(hosts=hosts))
 
     def get_evidence(self):

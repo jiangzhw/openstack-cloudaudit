@@ -42,7 +42,7 @@ class User(object):
 
 def get_user_from_request(request):
     if 'user' not in request.session:
-        return User(None,None,None,None,None)
+        return User(None, None, None, None, None)
     return User(request.session['token'],
                 request.session['user'],
                 request.session['tenant'],
@@ -76,11 +76,13 @@ class AuthenticationMiddleware(object):
 def token_create(request, tenant, username, password):
     return Token(auth_api().tokens.create(tenant, username, password))
 
+
 def auth_api():
 #    LOG.debug('auth_api connection created using url "%s"' %
 #                   settings.OPENSTACK_KEYSTONE_URL)
     return openstackx.auth.Auth(
             management_url='http://localhost:5000/v2.0/')
+
 
 class APIResourceWrapper(object):
     """ Simple wrapper for api objects
@@ -108,5 +110,3 @@ class APIResourceWrapper(object):
 class Token(APIResourceWrapper):
     """Simple wrapper around openstackx.auth.tokens.Token"""
     _attrs = ['id', 'serviceCatalog', 'tenant_id', 'username']
-
-

@@ -21,7 +21,6 @@ Controller that returns information on the Glance API versions
 
 import httplib
 import webob
-import cloudaudit.api.Control_Nist800_53_AC_7
 import cloudaudit.api.ControlRegistry
 
 from cloudaudit import local_settings
@@ -56,37 +55,37 @@ class Controller(object):
                     {
                         "rel": "self",
                         "href": self.get_href()}]}]
-        token = keystone.token_create(req, 'admin', req.str_GET['User'], req.str_GET['Password'] )
+        token = keystone.token_create(
+            req, 'admin', req.str_GET['User'], req.str_GET['Password'])
 
-        urlTail = str.split(req.url, "/cloudaudit/.wellknown/", 1)
+        url_tail = str.split(req.url, "/.wellknown/cloudaudit", 1)
 
-        if len(urlTail) != 2:
+        if len(url_tail) != 2:
             raise Exception("Malformed URL: " + req.url)
 
-        urlTail = urlTail[1]
+        url_tail = url_tail[1]
 
-        urlTail = str.split(urlTail, "?", 1)
+        url_tail = str.split(url_tail, "?", 1)
 
-        if len(urlTail) != 2:
+        if len(url_tail) != 2:
             raise Exception("Malformed URL: " + req.url)
 
-        urlTail = urlTail[0]
-        
+        url_tail = url_tail[0]
+
         reg = cloudaudit.api.ControlRegistry.ControlRegistry()
-        ic = reg.getControlFromUrl(urlTail)
+        ic = reg.get_control_from_url(url_tail)
 
-        ic.getEvidence(req)
+        ic.get_evidence(req)
 
-        ic.getManifest()
+        ic.get_manifest()
 
-        body = ic.getResponse(req)
+        body = ic.get_response(req)
 #        body = json.dumps(dict(req=req))
 #        body = json.dumps(dict(versions=version_objs))
 
-
         response = webob.Response(request=req,
                                   status=httplib.MULTIPLE_CHOICES,
-                                  content_type='application/json')
+                                  content_type='application/xml')
         response.body = body
 
         return response

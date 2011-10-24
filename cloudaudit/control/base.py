@@ -19,7 +19,9 @@
 Base class for CloudAudit control implementations
 """
 
-
+from lxml import etree
+from lxml.builder import E
+import urlparse
 from xml.dom.minidom import Document
 
 
@@ -28,192 +30,143 @@ class BaseControl(object):
     """
     A controller that produces information on the Glance API versions.
     """
+    scheme = "http"
+    net_loc = "www.cloudhosting.com"
+    base_loc = ".well-known/cloudaudit"
+    generated_net_loc = "pistincloud.com"
+    generated_base_loc = "CloudauditAPI"
+    generated_vers = "1.0"
+    api_name = "Piston CloudAudit API Implementation 1.0"
 
-    def __init__(self, evidence_gatherer=None, control_title="Not Set",
-                 regime="Not Set",
-                 regime_version="Not Set",
-                 control_id="Not Set",
-                 control_subtitle="Not Set",
-                 time_updated="Never",
-                 regime_str="Not Set",
-                 entries=None,
-                 docEntries=[],
-                 root_url="http://localhost/.well-known/cloudaudit"):
+    rights = "Copyright (c) 2009, Piston Cloud Computing Inc."
+
+    def __init__(self):
+        self.text_response = None
+
         self._doc = Document()
         self._authors = []
 
-        self.evidence_gatherer = evidence_gatherer
-        self.control_title = control_title
-        self.regime = regime
-        self.regime_version = regime_version
-        self.control_id = control_id
-        self.control_subtitle = control_subtitle
-        self.time_updated = time_updated
-        self.regime_str = regime_str
-        self.entries = entries
-        self.docEntries = docEntries
-        self.root_url = root_url
+        regime = self.__class__.regime
+        self.evidence_gatherer = self.__class__.evidence_gatherer
+        self.control_title = self.__class__.control_title
+        self.regime = self.__class__.regime
+        self.regime_version = self.__class__.regime_version
+        self.control_id = self.__class__.control_id
+        self.control_subtitle = self.__class__.control_subtitle
+        self.time_updated = self.__class__.time_updated
+        self.regime_str = self.__class__.regime_id
+        self.entries = []
+        self.docEntries = []
+        self.scheme = self.__class__.scheme
+
+        self.control_path = str.join("/", (self.__class__.base_loc,
+                                           self.__class__.regime,
+                                           self.__class__.regime_version,
+                                           self.__class__.control_id))
+
+        self.gen_path = str.join("/", (self.__class__.generated_net_loc,
+                                           self.__class__.generated_base_loc))
 
     def get_evidence(self, req):
 
         return ""
 
+    @property
+    def url(self):
+        return urlparse.urlunsplit((self.scheme, self.__class__.net_loc,
+                                    self.control_path, None, None))
+
+    @property
+    def id(self):
+        return urlparse.urlunsplit((self.scheme, self.__class__.net_loc,
+                                    self.control_path, None, None))
+
+    @property
+    def generated(self):
+        return urlparse.urlunsplit((self.scheme, self.__class__.net_loc,
+                                    self.gen_path, None, None))
+
     def get_manifest(self, req):
-        doc = self._doc
 
-        self._feed = doc.createElement("feed")
-        self._feed.setAttribute("xmlns", "http://www.w3.org/2005/Atom")
+        self.add_author("jd", "jd@sec")
+        self.add_author("jd2", "jdddd@asdf.com")
 
-        self._title = doc.createElement("title")
-        ptext = doc.createTextNode(self.control_title)
-        self._title.appendChild(ptext)
+        temp_xml = \
+        recursively_serialize_a_list(self._authors, etree.Element("authors"))
 
-        self._link = doc.createElement("link")
-        link = self._link
-        link.setAttribute("href",
-                          "http://www.cloudhosting.com/.well-known/cloudaudit/"
-                                  + self.regime + "/" +
-                                  self.regime_version + "/"
-                                  + self.control_id + "/")
-        link.setAttribute("rel", "self")
+        txml = temp_xml
 
-        self._idTag = doc.createElement("id")
-        idTag = self._idTag
+        for e in self.entries:
+            new_xml = e.to_xml()
+            txml.append(new_xml)
+            txml = new_xml
 
-        ptext = doc.createTextNode(
-            "http://www.cloudhosting.com/.well-known/cloudaudit/"
-            + self.regime + "/" + self.regime_version + "/" +
-            self.control_id + "/")
-        idTag.appendChild(ptext)
+        self.xml_doc = E.feed({"xmlns": "http://www.w3.org/2005/Atom"},
+            E.title(self.control_title),
+            E.link({"href": self.url},
+                {"rel": "self"}),
+            E.id(self.id),
+            E.subtitle(self.control_subtitle),
+            E.updated(self.time_updated),
+            E.generator({"uri": self.generated},
+                {"version": self.__class__.generated_vers},
+                self.__class__.api_name),
+            E.rights({"term": ""}),
+            temp_xml,
+            E.rights({"type": "text"}, self.__class__.rights),
+            E.category({"term": self.__class__.regime_str},
+                    {"label": self.__class__.regime_str}),
+            temp_xml)
 
-        self._subtitle = doc.createElement("subtitle")
-        ptext = doc.createTextNode(self.control_subtitle)
-
-        self._subtitle.appendChild(ptext)
-
-        self._updated = doc.createElement("updated")
-        ptext = doc.createTextNode(self.time_updated)
-        self._updated.appendChild(ptext)
-
-        self._generator = doc.createElement("generator")
-        self._generator.setAttribute("uri",
-                                     "www.pistoncloud.com/cloudauditapi")
-        self._generator.setAttribute("version", "1.0")
-        ptext = doc.createTextNode("Piston CloudAudit API Implementation 1.0")
-        self._generator.appendChild(ptext)
-
-        self.add_author("John Doe", "jdoe@pistoncloud.com")
-
-        self._rights = doc.createElement("rights")
-
-        self._category = doc.createElement("category")
-        self._category.setAttribute("term", self.regime)
-        self._category.setAttribute("label", self.regime_str)
-
-        self._docEntries = []
-
-        for entry in self.entries:
-            new_entry = doc.createElement("entry")
-            self._docEntries.append(new_entry)
-
-            new_entry_title = doc.createElement("title")
-            new_entry.appendChild(new_entry_title)
-
-            new_entry_link = doc.createElement("link")
-            new_entry.appendChild(new_entry_link)
-
-            new_entry_id = doc.createElement("id")
-            new_entry.appendChild(new_entry_id)
-
-            new_entry_updated = doc.createElement("updated")
-            new_entry.appendChild(new_entry_updated)
-
-            new_entry_summary = doc.createElement("summary")
-            new_entry.appendChild(new_entry_summary)
-
-            ptext = doc.createTextNode(entry['title'])
-            new_entry_title.appendChild(ptext)
-
-            ptext = doc.createTextNode(entry['link'])
-            new_entry_link.appendChild(ptext)
-            new_entry.appendChild(new_entry_title)
-            new_entry_link.setAttribute("type", entry['type'])
-            new_entry_link.setAttribute("rel", "realated")
-
-            ptext = doc.createTextNode(entry['id'])
-            new_entry_id.appendChild(ptext)
-
-            ptext = doc.createTextNode(entry['updated'])
-            new_entry_updated.appendChild(ptext)
-
-            ptext = doc.createTextNode(entry['summary'])
-            new_entry_summary.appendChild(ptext)
-
-            for author in entry['author']:
-                new_author = doc.createElement("author")
-
-                new_author_name = doc.createElement("name")
-                new_author.appendChild(new_author_name)
-
-                new_author_email = doc.createElement("email")
-                new_author.appendChild(new_author_email)
-
-                ptext = doc.createTextNode(author['name'])
-                new_author_name.appendChild(ptext)
-
-                ptext = doc.createTextNode(author['email'])
-                new_author_email.appendChild(ptext)
-
-            for contrib in entry['contributor']:
-                new_contrib = doc.createElement("contributor")
-
-                new_contrib_name = doc.createElement("name")
-                new_contrib.appendChild(new_contrib_name)
-
-                newContrib_email = doc.createElement("email")
-                new_contrib.appendChild(newContrib_email)
-
-                ptext = doc.createTextNode(contrib['name'])
-                new_contrib_name.appendChild(ptext)
-
-                ptext = doc.createTextNode(contrib['email'])
-                newContrib_email.appendChild(ptext)
+        return self.xml_doc
 
     def add_entries(self, req):
         self.entries = []
 
     def get_response(self, req):
-        self._doc.appendChild(self._feed)
-        self._feed.appendChild(self._title)
-        self._feed.appendChild(self._link)
-        self._feed.appendChild(self._idTag)
-        self._feed.appendChild(self._subtitle)
-        self._feed.appendChild(self._updated)
-        self._feed.appendChild(self._generator)
-        for author in self._authors:
-            self._feed.appendChild(author)
 
-        for entry in self._docEntries:
-            self._feed.appendChild(entry)
+        if self.text_response is not None:
+            return self.text_response
 
-        retval = self._doc.toprettyxml(indent="  ")
+        self.text_response = etree.tostring(self.xml_doc, pretty_print=True)
 
-        return retval
+        return self.text_response
 
     def add_author(self, name, email):
         if self._authors is None:
             self._authors = []
 
-        new_author = self._doc.createElement("author")
-        new_name = self._doc.createElement("name")
-        new_email = self._doc.createElement("email")
+        self._authors.append({"author": [{"name":  name},
+                {"email": email}]})
 
-        ptext = self._doc.createTextNode(name)
-        new_name.appendChild(ptext)
-        ptext = self._doc.createTextNode(email)
-        new_email.appendChild(ptext)
 
-        new_author.appendChild(new_name)
-        new_author.appendChild(new_email)
+def serialize_a_dict(d, parent):
+    for k, v in d.items():
+        if isinstance(v, dict):
+            if k == "123ATTRIBUTE123":
+                for k2, v2 in v:
+                    parent.attrib[k2] = v2
+            else:
+                el = etree.SubElement(parent, k)
+                serialize_a_dict(v, el)
+        elif isinstance(v, list):
+            el = etree.SubElement(parent, k)
+            recursively_serialize_a_list(v, el)
+        else:
+            el = etree.SubElement(parent, k)
+            el.text = str(v)
+    return parent
 
-        self._authors.append(new_author)
+
+def recursively_serialize_a_list(l, parent):
+    for v in l:
+        try:
+            if v.__iter__:
+                if isinstance(v, dict):
+                    serialize_a_dict(v, parent)
+                else:
+                    recursively_serialize_a_list(v, parent)
+        except AttributeError:
+            el = etree.SubElement(parent, parent.tag)
+            el.text = str(v)
+    return parent

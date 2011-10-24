@@ -23,13 +23,15 @@ class SSHAccessor(base.BaseAccessor):
     def __init__(self, private_key_file=None, hosts=None):
         super(self.__class__, self).__init__(hosts)
 
+        if hosts is None:
+            hosts = []
+
         self.os_map = {}
         self.private_key = private_key_file
 
         self.clients = dict([(host, self.get_client(host)) for host in hosts])
 
-    def get_client(self, host, username='chris', private_key=None):
-        # todo(chris): Implement caching as a decorator.
+    def get_client(self, host, username='ubuntu', private_key=None):
 
         if not private_key:
             private_key = self.private_key
@@ -46,7 +48,7 @@ class SSHAccessor(base.BaseAccessor):
         clients = kwargs.get('clients', self.clients)
 
         if hosts:
-            clients = dict([(host, self.clients[host]) for host in hosts]) 
+            clients = dict([(host, self.clients[host]) for host in hosts])
 
         command = str.join(' ', command)
 

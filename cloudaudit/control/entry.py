@@ -21,8 +21,8 @@ Base class for CloudAudit control implementations
 
 from lxml import etree
 from lxml.builder import E
-import urlparse
 import cloudaudit.control.base
+
 
 class BaseEntry(object):
 
@@ -54,18 +54,21 @@ class BaseEntry(object):
         if self._authors is None:
             self._authors = []
 
-        self._authors.append({"author": [ {"name":  name}, {"email": email} ]} )
+        self._authors.\
+        append({"author": [{"name":  name}, {"email": email}]})
 
     def to_xml(self):
 
-        author_xml = cloudaudit.control.base.recursively_serialize_a_list(self._authors, etree.Element("authors"))
+        author_xml = cloudaudit.control.base.\
+        recursively_serialize_a_list(self._authors, etree.Element("authors"))
 
         ret_xml = E.entry(E.title(self.title),
-            E.link({"href": self.link}, {"type": self.link_type}, {"rel": self.link_rel}),
+            E.link({"href": self.link}, {"type": self.link_type},
+                    {"rel": self.link_rel}),
             E.id(self.id),
             E.updated(self.updated),
-            E.content({"type": self.content_type}, {"lang": self.content_lang}, self.content),
-            author_xml
-        )
+            E.content({"type": self.content_type},
+                    {"lang": self.content_lang}, self.content),
+            author_xml)
 
         return ret_xml

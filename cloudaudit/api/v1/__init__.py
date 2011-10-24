@@ -13,11 +13,12 @@ class API(wsgi.Router):
     def __init__(self, options):
         self.options = options
         mapper = routes.Mapper()
-	resource = controls.create_resource(options)
+        resource = controls.create_resource(options)
 #        resource = images.create_resource(options)
 #        mapper.resource("image", "images", controller=resource,
 #                        collection={'detail': 'GET'})
-        mapper.connect("/.well_known/cloudaudit/glossary/{controlid}", controller=resource, action="index")
+        mapper.connect("/.well_known/cloudaudit/glossary/{controlid}",
+                       controller=resource, action="index")
         super(API, self).__init__(mapper)
 
 
@@ -26,4 +27,3 @@ def app_factory(global_conf, **local_conf):
     conf = global_conf.copy()
     conf.update(local_conf)
     return API(conf)
-

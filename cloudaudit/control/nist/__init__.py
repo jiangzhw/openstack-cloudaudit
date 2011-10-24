@@ -24,5 +24,6 @@ class NIST_800_53_Control(base.BaseControl):
     """Base control for NIST 800-53 Regime."""
 
     regime_id = "NIST 800-53"
-    regime="gov/nist/crc/sp800-53",
-    regime_version="r3",
+    regime = "gov/nist/crc/sp800-53"
+    regime_str = "NIST 800-53 sp3"
+    regime_version = "r3"
