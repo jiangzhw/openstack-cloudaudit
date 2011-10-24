@@ -20,74 +20,70 @@
 from xml.dom.minidom import Document
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import max_login_attempts
+import cloudaudit.api.ControlRegistry
+import cloudaudit.control.entry
 
 
-class NIST_800_53_ac7(nist.NIST_800_53_Control):
+class NIST_800_53_ac10(nist.NIST_800_53_Control):
     """
-    Control evidence gathering implementation for NIST 800-53 control AC-7
+    Control evidence gathering implementation for NIST 800-53 control AC-10
 
-    AC-7:
+    AC-10:
 
-    Control:  The information system:
-        a. Enforces a limit of [Assignment: organization-defined number]
-        consecutive invalid access
-        attempts by a user during a [Assignment: organization-defined
-        time period]; and
-
-        b. Automatically [Selection: locks the account/node for an [Assignment:
-        organization-defined time period];
-        locks the account/node until released by an administrator;
-        delays next login prompt according to [Assignment: organization-
-        defined delay algorithm]] when the maximum number of unsuccessful
-        attempts is exceeded.
-
-        The control applies regardless of whether the login occurs via a
-        local or network connection.
+    Control:  The information system limits the number of concurrent sessions
+    for each system account to [Assignment: organization-defined number].
+    Supplemental Guidance:  The organization may define the maximum number
+    of concurrent sessions for an information system account globally, by
+    account type, by account, or a combination.  This control addresses
+    concurrent sessions for a given information system account and does not
+    address concurrent sessions by a single user via multiple system accounts.
     """
 
     time_updated = "Never"
     evidence_gatherer = None
-    control_title = "NIS 800-53 AC-7 Maximum Unsuccessful Logins"
-    control_id = "ac/7"
-    control_subtitle = "Max Unsuccessful Logins before Lockout"
+    control_title = "NIS 800-53 AC-10 Concurrent Session Control"
+    control_id = "ac/10"
+    control_subtitle = "Concurrent Session Control"
 
     def __init__(self):
         super(self.__class__, self).__init__()
         self.xml_inventory = None
-        self.max_logins = None
+        self.evidence_data = None
 
     def get_evidence(self, req):
         if self.entries is None:
             self.entries = []
 
-        super(NIST_800_53_ac7, self).get_evidence(req)
+        super(NIST_800_53_ac10, self).get_evidence(req)
 
         if self.evidence_gatherer is None:
             self.evidence_gatherer = max_login_attempts.MaxLoginAttempts()
 
-        self.maxlogins = self.evidence_gatherer.get_evidence()
+        self.evidence_data = self.evidence_gatherer.get_evidence()
 
         self.time_updated = "2010-01-13T18:30:02Z"
 
-        newentry = {}
 
-        newentry['title'] = \
-        "Maximum Unsuccessful Logins Inventory for all Unix systems"
+        newentry = cloudaudit.control.entry.BaseEntry()
 
-        newentry['link'] = self.root_url + "/" + self.regime + "/" \
-                           + self.regime_version + "/" +\
-                           self.control_id + "/" + "maxlogins.xml"
-        newentry['id'] = newentry['link']
-        newentry['type'] = "application/xml"
-        newentry['updated'] = self.time_updated
-        newentry['summary'] = \
+        newentry.title = \
+        "Concurrent Sessions Limitations"
+
+        newlink = self.url + "/" + "consurrentsessions.xml"
+        newentry.link = newlink
+        newentry.link_rel = "related"
+        newentry.link_type = "xml"
+
+        newentry.id = newlink
+
+        newentry.updated = self.time_updated
+
+        newentry.content = \
         "A list of the detected maximum number of allowable "\
-        + "unsuccessful login attempts before account lockout" +\
+        + "concurrent login sessions" +\
         "per host indexed by IP address"
 
-        newentry['author'] = [{'name':'Piston_CloudAudit', 'email':\
-        'cloudaudit@pistoncloud.com'}]
-        newentry['contributor'] = []
+        newentry.add_author("John Doe", "jdoe@pistoncc.com")
 
         self.entries.append(newentry)
 
@@ -129,3 +125,7 @@ class NIST_800_53_ac7(nist.NIST_800_53_Control):
         req.url()
 
         return ""
+
+
+this_control = NIST_800_53_ac10()
+cloudaudit.api.ControlRegistry.CONTROL_REGISTRY.register_control(this_control)

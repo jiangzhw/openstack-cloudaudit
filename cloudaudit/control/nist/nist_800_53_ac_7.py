@@ -21,9 +21,10 @@ from xml.dom.minidom import Document
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import max_login_attempts
 import cloudaudit.control.entry
+import cloudaudit.api.ControlRegistry
 
 
-class NIST_800_53_ac10(nist.NIST_800_53_Control):
+class NIST_800_53_ac7(nist.NIST_800_53_Control):
     """
     Control evidence gathering implementation for NIST 800-53 control AC-7
 
@@ -61,7 +62,7 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         if self.entries is None:
             self.entries = []
 
-        super(NIST_800_53_ac10, self).get_evidence(req)
+        super(NIST_800_53_ac7, self).get_evidence(req)
 
         if self.evidence_gatherer is None:
             self.evidence_gatherer = max_login_attempts.MaxLoginAttempts()
@@ -70,7 +71,6 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
 
         self.time_updated = "2010-01-13T18:30:02Z"
 
-        newentry = {}
         newentry = cloudaudit.control.entry.BaseEntry()
 
         newentry.title = \
@@ -98,7 +98,7 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         if self.entries is None:
             self.get_evidence(None)
 
-        xml_str = super(NIST_800_53_ac10, self).get_manifest(None)
+        xml_str = super(NIST_800_53_ac7, self).get_manifest(None)
 
         return xml_str
 
@@ -132,3 +132,6 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         req.url()
 
         return ""
+
+our_control = NIST_800_53_ac7()
+cloudaudit.api.ControlRegistry.CONTROL_REGISTRY.register_control(our_control)

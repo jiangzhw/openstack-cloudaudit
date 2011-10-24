@@ -21,12 +21,13 @@ from xml.dom.minidom import Document
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import lastlogon_notification
 import urlparse
+import cloudaudit.api.ControlRegistry
 
 
 class NIST_800_53_ac9(nist.NIST_800_53_Control):
 
     """
-    Control evidence gathering implementation for NIST 800-53 control AC-7
+    Control evidence gathering implementation for NIST 800-53 control AC-9
 
     AC-9:
 
@@ -140,3 +141,6 @@ class NIST_800_53_ac9(nist.NIST_800_53_Control):
         req.url()
 
         return ""
+
+this_control = NIST_800_53_ac9()
+cloudaudit.api.ControlRegistry.CONTROL_REGISTRY.register_control(this_control)

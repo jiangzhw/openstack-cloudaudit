@@ -72,7 +72,7 @@ class Controller(object):
 
         url_tail = url_tail[0]
 
-        reg = cloudaudit.api.ControlRegistry.ControlRegistry()
+        reg = cloudaudit.api.ControlRegistry.CONTROL_REGISTRY
         ic = reg.get_control_from_url(url_tail)
 
         ic.get_evidence(req)
