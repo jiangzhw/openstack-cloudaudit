@@ -20,6 +20,7 @@
 from xml.dom.minidom import Document
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import max_login_attempts
+import cloudaudit.control.entry
 
 
 class NIST_800_53_ac10(nist.NIST_800_53_Control):
@@ -70,24 +71,26 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         self.time_updated = "2010-01-13T18:30:02Z"
 
         newentry = {}
+        newentry = cloudaudit.control.entry.BaseEntry()
 
-        newentry['title'] = \
+        newentry.title = \
         "Maximum Unsuccessful Logins Inventory for all Unix systems"
 
-        newentry['link'] = self.root_url + "/" + self.regime + "/" \
-                           + self.regime_version + "/" +\
-                           self.control_id + "/" + "maxlogins.xml"
-        newentry['id'] = newentry['link']
-        newentry['type'] = "application/xml"
-        newentry['updated'] = self.time_updated
-        newentry['summary'] = \
+        newlink = self.url + "/" + "maxlogins.xml"
+        newentry.link = newlink
+        newentry.link_rel = "related"
+        newentry.link_type = "xml"
+
+        newentry.id = newlink
+
+        newentry.updated = self.time_updated
+
+        newentry.content = \
         "A list of the detected maximum number of allowable "\
         + "unsuccessful login attempts before account lockout" +\
         "per host indexed by IP address"
 
-        newentry['author'] = [{'name':'Piston_CloudAudit', 'email':\
-        'cloudaudit@pistoncloud.com'}]
-        newentry['contributor'] = []
+        newentry.add_author("John Doe", "jdoe@pistoncc.com")
 
         self.entries.append(newentry)
 

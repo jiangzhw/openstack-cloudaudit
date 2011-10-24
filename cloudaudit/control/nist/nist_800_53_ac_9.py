@@ -20,6 +20,7 @@
 from xml.dom.minidom import Document
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import lastlogon_notification
+import urlparse
 
 
 class NIST_800_53_ac9(nist.NIST_800_53_Control):
@@ -61,6 +62,12 @@ class NIST_800_53_ac9(nist.NIST_800_53_Control):
         self.xml_inventory = None
         self.logon_nofitications = None
 
+    @property
+    def evidence_url(self):
+        path = self.control_path + "/lastlogin.xml"
+        return urlparse.urlunsplit((self.scheme, self.__class__.net_loc,
+                                    path, None, None))
+
     def get_evidence(self, req):
         if self.entries is None:
             self.entries = []
@@ -80,9 +87,7 @@ class NIST_800_53_ac9(nist.NIST_800_53_Control):
         newentry['title'] = \
         self.__class__.control_title
 
-        newentry['link'] = self.root_url + "/" + self.regime + "/" \
-                           + self.regime_version + "/" +\
-                           self.control_id + "/" + "lastlogon.xml"
+        newentry['link'] = self.evidence_url
         newentry['id'] = newentry['link']
         newentry['type'] = "application/xml"
         newentry['updated'] = self.time_updated
