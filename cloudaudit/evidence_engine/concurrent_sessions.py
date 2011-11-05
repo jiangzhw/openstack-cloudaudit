@@ -28,11 +28,11 @@ def concurrent_sessions_limit(x):
 
 class ConcurrentSessionsLimit(base.BaseEvidenceGatherer):
     def __init__(self, hosts=None):
-        super(LastLoginNotification, self).\
+        super(ConcurrentSessionsLimit, self).\
         __init__(ssh.SSHAccessor(hosts=hosts))
 
-    def get_eivdence(self):
-        for host in super(LastLoginNotification, self).get_evidence():
+    def get_evidence(self):
+        for host in super(ConcurrentSessionsLimit, self).get_evidence():
             source = "Sshd Configuration"
             concurrent_sessions = \
             self.accessor.execute('grep', 'tally', '/etc/ssh/sshd_config',

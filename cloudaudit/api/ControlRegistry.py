@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudaudit.control import nist
+#from cloudaudit.control import nist
 
 
 class ControlRegistry(object):
@@ -58,7 +58,7 @@ class ControlRegistry(object):
 #            else:
 #                control_dict[new_control.control_id] = new_control
 
-    def register_control(self, control):
+    def register_control(self, new_control):
         if new_control.regime in self.registryHead.keys():
             versions_dict = self.registryHead[new_control.regime]
         else:
@@ -123,4 +123,34 @@ class ControlRegistry(object):
         control = control_dict[temp_url]
         return control
 
+    def add_maps(self, mapper):
+
+        for k, v in self.registryHead.items():
+            for k2, v2 in v.items():
+                for k3, v3 in v2.items():
+                    str1 = v3.route
+                    mapper.connect(None, str1, controller=v3,
+                           conditions=dict(method=["GET"]))
+                    str1 = str1 + "/{file:.*}"
+                    mapper.connect(None, str1, controller=v3,
+                           conditions=dict(method=["GET"]))
+
+        return mapper
+
 CONTROL_REGISTRY = ControlRegistry()
+
+from cloudaudit.control.nist import nist_800_53_ac_7
+our_control = nist_800_53_ac_7.NIST_800_53_ac7()
+CONTROL_REGISTRY.register_control(our_control)
+
+from cloudaudit.control.nist import nist_800_53_ac_9
+our_control = nist_800_53_ac_9.NIST_800_53_ac9()
+CONTROL_REGISTRY.register_control(our_control)
+
+from cloudaudit.control.nist import nist_800_53_ac_10
+our_control = nist_800_53_ac_10.NIST_800_53_ac10()
+CONTROL_REGISTRY.register_control(our_control)
+
+from cloudaudit.control.nist import nist_800_53_ac_11
+our_control = nist_800_53_ac_11.NIST_800_53_ac11()
+CONTROL_REGISTRY.register_control(our_control)

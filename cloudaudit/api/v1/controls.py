@@ -19,13 +19,8 @@
 /cloudaudit endpoint for CloudAudit v1 API
 """
 
-import httplib
-import json
 import logging
-import sys
-import traceback
 
-import webob
 from webob.exc import (HTTPNotFound,
                        HTTPConflict,
                        HTTPBadRequest,

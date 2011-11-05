@@ -1,7 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
-# Copyright 2011 Piston Cloud Computing, Inc.
-#
+
+# Copyright 2010 OpenStack LLC.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -16,15 +15,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import routes
 
-from cloudaudit.control import base
+from cloudaudit.api import wsgi
+import cloudaudit.api.ControlRegistry
 
-import cloudaudit.api.ControlRegistry 
 
-class NIST_800_53_Control(base.BaseControl):
-    """Base control for NIST 800-53 Regime."""
+class CloudAuditRouter(wsgi.Router):
+    """WSGI entry point for CloudAudit API requests."""
 
-    regime_id = "NIST 800-53"
-    regime = "gov/nist/crc/sp800-53"
-    regime_str = "NIST 800-53 sp3"
-    regime_version = "r3"
+    def __init__(self, options):
+        self.options = options
+        mapper = routes.Mapper()
+        registry = cloudaudit.api.ControlRegistry.CONTROL_REGISTRY
+
+        mapper = registry.add_maps(mapper)
+
+        super(CloudAuditRouter, self).__init__(mapper)

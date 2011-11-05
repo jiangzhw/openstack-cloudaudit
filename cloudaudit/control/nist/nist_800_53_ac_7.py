@@ -16,12 +16,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
-from xml.dom.minidom import Document
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import max_login_attempts
 import cloudaudit.control.entry
-import cloudaudit.api.ControlRegistry
+from lxml.builder import E
+from lxml import etree
+from webob import Response
+import webob
 
 
 class NIST_800_53_ac7(nist.NIST_800_53_Control):
@@ -48,7 +49,6 @@ class NIST_800_53_ac7(nist.NIST_800_53_Control):
     """
 
     time_updated = "Never"
-    evidence_gatherer = None
     control_title = "NIS 800-53 AC-7 Maximum Unsuccessful Logins"
     control_id = "ac/7"
     control_subtitle = "Max Unsuccessful Logins before Lockout"
@@ -57,6 +57,7 @@ class NIST_800_53_ac7(nist.NIST_800_53_Control):
         super(self.__class__, self).__init__()
         self.xml_inventory = None
         self.max_logins = None
+        self.evidence_gatherer = None
 
     def get_evidence(self, req):
         if self.entries is None:
@@ -67,7 +68,7 @@ class NIST_800_53_ac7(nist.NIST_800_53_Control):
         if self.evidence_gatherer is None:
             self.evidence_gatherer = max_login_attempts.MaxLoginAttempts()
 
-        self.maxlogins = self.evidence_gatherer.get_evidence()
+        self.max_logins = self.evidence_gatherer.get_evidence()
 
         self.time_updated = "2010-01-13T18:30:02Z"
 
@@ -94,44 +95,28 @@ class NIST_800_53_ac7(nist.NIST_800_53_Control):
 
         self.entries.append(newentry)
 
-    def get_manifest(self):
+    def process_request(self, req):
+        resp = super(self.__class__, self).process_request(req)
+
+        if resp is None:
+            return self.get_xml_inventory(req)
+        else:
+            return resp
+
+
+    def get_manifest(self, req):
         if self.entries is None:
             self.get_evidence(None)
 
-        xml_str = super(NIST_800_53_ac7, self).get_manifest(None)
+        xml_str = super(NIST_800_53_ac7, self).get_manifest(req)
 
         return xml_str
 
     def get_xml_inventory(self, req):
-        if self.maxlogins is None:
-            self.maxlogins = self.evidence_gatherer.get_evidence()
+        if self.max_logins is None:
+            self.max_logins = self.get_evidence(req)
 
-        self.xml_inventory = Document()
-        doc = self.xml_inventory
+        if self.max_logins is None:
+            self.max_logins = {}
 
-        head_element = doc.createElement("maxUnsuccessfulLogins")
-
-        doc.appendChild(head_element)
-
-        for item in self.maxlogins.keys():
-            element = doc.createElement("entry")
-
-            ptext = self.doc.createTextNode(str(self.maxlogins[item]))
-
-            element.setAttribute("ip", item)
-
-            element.appendChild(ptext)
-            head_element.appendChild(element)
-
-        retval = head_element.toprettyxml(indent="  ")
-
-        return retval
-
-    def handle_request(self, req):
-
-        req.url()
-
-        return ""
-
-our_control = NIST_800_53_ac7()
-cloudaudit.api.ControlRegistry.CONTROL_REGISTRY.register_control(our_control)
+        return self.get_xml_inventory_base(req, self.max_logins, "maxUnsuccessfulLogins")

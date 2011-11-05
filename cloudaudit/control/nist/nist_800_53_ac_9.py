@@ -17,11 +17,14 @@
 #    under the License.
 
 
-from xml.dom.minidom import Document
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import lastlogon_notification
 import urlparse
-import cloudaudit.api.ControlRegistry
+from lxml.builder import E
+from lxml import etree
+from webob import Response
+import webob
+
 
 
 class NIST_800_53_ac9(nist.NIST_800_53_Control):
@@ -69,6 +72,14 @@ class NIST_800_53_ac9(nist.NIST_800_53_Control):
         return urlparse.urlunsplit((self.scheme, self.__class__.net_loc,
                                     path, None, None))
 
+    def process_request(self, req):
+        resp = super(self.__class__, self).process_request(req)
+
+        if resp is None:
+            return self.get_xml_inventory(req)
+        else:
+            return resp
+
     def get_evidence(self, req):
         if self.entries is None:
             self.entries = []
@@ -79,7 +90,7 @@ class NIST_800_53_ac9(nist.NIST_800_53_Control):
             self.evidence_gatherer = \
             lastlogon_notification.LastLoginNotification()
 
-        self.maxlogins = self.evidence_gatherer.get_evidence()
+        self.logon_nofitications = self.evidence_gatherer.get_evidence()
 
         self.time_updated = "2010-01-13T18:30:02Z"
 
@@ -103,7 +114,7 @@ class NIST_800_53_ac9(nist.NIST_800_53_Control):
 
         self.entries.append(newentry)
 
-    def get_manifest(self):
+    def get_manifest(self, req):
         if self.entries is None:
             self.get_evidence(None)
 
@@ -112,35 +123,10 @@ class NIST_800_53_ac9(nist.NIST_800_53_Control):
         return xml_str
 
     def get_xml_inventory(self, req):
-        if self.maxlogins is None:
-            self.maxlogins = self.evidence_gatherer.get_evidence()
+        if self.logon_nofitications is None:
+            self.logon_nofitications = self.get_evidence(req)
 
-        self.xml_inventory = Document()
-        doc = self.xml_inventory
+        if self.logon_nofitications is None:
+            self.logon_nofitications = {}
 
-        head_element = doc.createElement("maxUnsuccessfulLogins")
-
-        doc.appendChild(head_element)
-
-        for item in self.maxlogins.keys():
-            element = doc.createElement("entry")
-
-            ptext = self.doc.createTextNode(str(self.maxlogins[item]))
-
-            element.setAttribute("ip", item)
-
-            element.appendChild(ptext)
-            head_element.appendChild(element)
-
-        retval = head_element.toprettyxml(indent="  ")
-
-        return retval
-
-    def handle_request(self, req):
-
-        req.url()
-
-        return ""
-
-this_control = NIST_800_53_ac9()
-cloudaudit.api.ControlRegistry.CONTROL_REGISTRY.register_control(this_control)
+        return self.get_xml_inventory_base(req, self.logon_nofitications, "lastLogonNotificationsEnabled")

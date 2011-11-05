@@ -22,11 +22,9 @@ Controller that returns information on the Glance API versions
 import httplib
 import webob
 import cloudaudit.api.ControlRegistry
-
 from cloudaudit import local_settings
-
-from  cloudaudit.api.middleware import keystone
-
+from cloudaudit.api.middleware import keystone
+import cloudaudit.router
 
 class Controller(object):
 
@@ -80,8 +78,6 @@ class Controller(object):
         ic.get_manifest()
 
         body = ic.get_response(req)
-#        body = json.dumps(dict(req=req))
-#        body = json.dumps(dict(versions=version_objs))
 
         response = webob.Response(request=req,
                                   status=httplib.MULTIPLE_CHOICES,
@@ -96,7 +92,8 @@ class Controller(object):
 
 
 def app_factory(global_conf, **local_conf):
+    adf = "asdfasdf"
     """paste.deploy app factory for creating Glance API versions apps"""
     conf = global_conf.copy()
     conf.update(local_conf)
-    return Controller(conf)
+    return cloudaudit.router(conf)

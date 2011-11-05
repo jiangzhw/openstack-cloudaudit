@@ -56,7 +56,7 @@ class NIST_800_53_ac11(nist.NIST_800_53_Control):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.xml_inventory = None
-        self.max_logins = None
+        self.evidence_data = None
 
     def get_evidence(self, req):
         if self.entries is None:
@@ -67,7 +67,7 @@ class NIST_800_53_ac11(nist.NIST_800_53_Control):
         if self.evidence_gatherer is None:
             self.evidence_gatherer = max_login_attempts.MaxLoginAttempts()
 
-        self.maxlogins = self.evidence_gatherer.get_evidence()
+        self.evidence_data = self.evidence_gatherer.get_evidence()
 
         self.time_updated = "2010-01-13T18:30:02Z"
 
@@ -94,7 +94,15 @@ class NIST_800_53_ac11(nist.NIST_800_53_Control):
 
         self.entries.append(newentry)
 
-    def get_manifest(self):
+    def process_request(self, req):
+        resp = super(self.__class__, self).process_request(req)
+
+        if resp is None:
+            return self.get_xml_inventory(req)
+        else:
+            return resp
+
+    def get_manifest(self, req):
         if self.entries is None:
             self.get_evidence(None)
 
@@ -103,35 +111,10 @@ class NIST_800_53_ac11(nist.NIST_800_53_Control):
         return xml_str
 
     def get_xml_inventory(self, req):
-        if self.maxlogins is None:
-            self.maxlogins = self.evidence_gatherer.get_evidence()
+        if self.evidence_data is None:
+            self.get_evidence(req)
 
-        self.xml_inventory = Document()
-        doc = self.xml_inventory
+        if self.evidence_data is None:
+            self.evidence_data = {}
 
-        head_element = doc.createElement("maxUnsuccessfulLogins")
-
-        doc.appendChild(head_element)
-
-        for item in self.maxlogins.keys():
-            element = doc.createElement("entry")
-
-            ptext = self.doc.createTextNode(str(self.maxlogins[item]))
-
-            element.setAttribute("ip", item)
-
-            element.appendChild(ptext)
-            head_element.appendChild(element)
-
-        retval = head_element.toprettyxml(indent="  ")
-
-        return retval
-
-    def handle_request(self, req):
-
-        req.url()
-
-        return ""
-
-this_control = NIST_800_53_ac11()
-cloudaudit.api.ControlRegistry.CONTROL_REGISTRY.register_control(this_control)
+        return self.get_xml_inventory_base(req, self.evidence_data, "sessionIdleTimeout")

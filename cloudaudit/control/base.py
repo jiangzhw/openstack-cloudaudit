@@ -23,9 +23,13 @@ from lxml import etree
 from lxml.builder import E
 import urlparse
 from xml.dom.minidom import Document
+import cloudaudit.api.wsgi
+from cloudaudit.api.middleware import keystone
+from webob import Response
+import webob
 
 
-class BaseControl(object):
+class BaseControl(cloudaudit.api.wsgi.Middleware):
 
     """
     A controller that produces information on the Glance API versions.
@@ -47,7 +51,6 @@ class BaseControl(object):
         self._authors = []
 
         regime = self.__class__.regime
-        self.evidence_gatherer = self.__class__.evidence_gatherer
         self.control_title = self.__class__.control_title
         self.regime = self.__class__.regime
         self.regime_version = self.__class__.regime_version
@@ -72,6 +75,10 @@ class BaseControl(object):
         return ""
 
     @property
+    def route(self):
+        return "/"  + self.control_path
+    
+    @property
     def url(self):
         return urlparse.urlunsplit((self.scheme, self.__class__.net_loc,
                                     self.control_path, None, None))
@@ -85,6 +92,27 @@ class BaseControl(object):
     def generated(self):
         return urlparse.urlunsplit((self.scheme, self.__class__.net_loc,
                                     self.gen_path, None, None))
+
+    # We override this primarily to add keystone authorization enforcement
+    # subclasses should not override this method or if they do they
+    # should always check keystone auth
+    @webob.dec.wsgify
+    def __call__(self, req):
+        token = keystone.token_create(
+                req, 'admin', req.str_GET['User'], req.str_GET['Password'])
+
+        response = self.process_request(req)
+        if response:
+            return response
+        response = req.get_response(self.application)
+        return self.process_response(response)
+
+    def process_request(self, req):
+        path = req.path
+        if len(path) == len(self.route):
+            return self.get_manifest(req)
+        else:
+            return None
 
     def get_manifest(self, req):
 
@@ -118,7 +146,14 @@ class BaseControl(object):
                     {"label": self.__class__.regime_str}),
             temp_xml)
 
-        return self.xml_doc
+        self.text_response = etree.tostring(self.xml_doc, pretty_print=True)
+
+        self.response = Response()
+
+        self.response.write(self.text_response)
+        self.response.headers['content-type'] = 'application/xml'
+        
+        return self.response
 
     def add_entries(self, req):
         self.entries = []
@@ -139,6 +174,29 @@ class BaseControl(object):
         self._authors.append({"author": [{"name":  name},
                 {"email": email}]})
 
+    def get_xml_inventory_base(self, req, evidence_items, tag1):
+        temp_xml = None
+
+        for item in evidence_items.keys():
+            if temp_xml is None:
+                temp_xml = E.entry(str(evidence_items[item]), {"ip": item})
+            else:
+                add_xml = E.entry(str(evidence_items[item]), {"ip": item})
+                temp_xml.append(add_xml)
+
+        root_xml = etree.Element(tag1)
+
+        if temp_xml is not None:
+            self.manifest_xml = etree.SubElement(root_xml, temp_xml)
+
+        self.manifest_response = etree.tostring(root_xml, pretty_print=True)
+
+        self.response = Response()
+
+        self.response.write(self.manifest_response)
+        self.response.headers['content-type'] = 'application/xml'
+
+        return self.response
 
 def serialize_a_dict(d, parent):
     for k, v in d.items():

@@ -19,7 +19,7 @@
 
 from xml.dom.minidom import Document
 from cloudaudit.control import nist
-from cloudaudit.evidence_engine import max_login_attempts
+from cloudaudit.evidence_engine import concurrent_sessions
 import cloudaudit.api.ControlRegistry
 import cloudaudit.control.entry
 
@@ -57,7 +57,7 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         super(NIST_800_53_ac10, self).get_evidence(req)
 
         if self.evidence_gatherer is None:
-            self.evidence_gatherer = max_login_attempts.MaxLoginAttempts()
+            self.evidence_gatherer = concurrent_sessions.ConcurrentSessionsLimit()
 
         self.evidence_data = self.evidence_gatherer.get_evidence()
 
@@ -69,7 +69,7 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         newentry.title = \
         "Concurrent Sessions Limitations"
 
-        newlink = self.url + "/" + "consurrentsessions.xml"
+        newlink = self.url + "/" + "concurrentsessions.xml"
         newentry.link = newlink
         newentry.link_rel = "related"
         newentry.link_type = "xml"
@@ -87,45 +87,27 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
 
         self.entries.append(newentry)
 
-    def get_manifest(self):
+    def process_request(self, req):
+        resp = super(self.__class__, self).process_request(req)
+
+        if resp is None:
+            return self.get_xml_inventory(req)
+        else:
+            return resp
+
+    def get_manifest(self, req):
         if self.entries is None:
             self.get_evidence(None)
 
-        xml_str = super(NIST_800_53_ac7, self).get_manifest(None)
+        xml_str = super(NIST_800_53_ac10, self).get_manifest(None)
 
         return xml_str
 
     def get_xml_inventory(self, req):
-        if self.maxlogins is None:
-            self.maxlogins = self.evidence_gatherer.get_evidence()
+        if self.evidence_data is None:
+            self.get_evidence(req)
 
-        self.xml_inventory = Document()
-        doc = self.xml_inventory
+        if self.evidence_data is None:
+            self.evidence_data = {}
 
-        head_element = doc.createElement("maxUnsuccessfulLogins")
-
-        doc.appendChild(head_element)
-
-        for item in self.maxlogins.keys():
-            element = doc.createElement("entry")
-
-            ptext = self.doc.createTextNode(str(self.maxlogins[item]))
-
-            element.setAttribute("ip", item)
-
-            element.appendChild(ptext)
-            head_element.appendChild(element)
-
-        retval = head_element.toprettyxml(indent="  ")
-
-        return retval
-
-    def handle_request(self, req):
-
-        req.url()
-
-        return ""
-
-
-this_control = NIST_800_53_ac10()
-cloudaudit.api.ControlRegistry.CONTROL_REGISTRY.register_control(this_control)
+        return self.get_xml_inventory_base(req, self.evidence_data, "maxConcurrentLogins")
