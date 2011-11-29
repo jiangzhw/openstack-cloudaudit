@@ -17,33 +17,37 @@
 #    under the License.
 
 
-from time import gmtime, strftime
-from cloudaudit.control import nist
+
 from cloudaudit.evidence_engine import concurrent_sessions
 import cloudaudit.api.ControlRegistry
 import cloudaudit.control.entry
+from time import gmtime, strftime
 
 
-class NIST_800_53_ac10(nist.NIST_800_53_Control):
+class CONTROL_TEMPLATE(cloudaudit.control.base.BaseControl):
     """
-    Control evidence gathering implementation for NIST 800-53 control AC-10
+    INSERT CONTROL TITLE HERE
 
-    AC-10:
+    INSERT_CONTROL_ID:
 
-    Control:  The information system limits the number of concurrent sessions
-    for each system account to [Assignment: organization-defined number].
-    Supplemental Guidance:  The organization may define the maximum number
-    of concurrent sessions for an information system account globally, by
-    account type, by account, or a combination.  This control addresses
-    concurrent sessions for a given information system account and does not
-    address concurrent sessions by a single user via multiple system accounts.
+    DESCRIBE CONTROL HERE.
     """
 
     time_updated = "Never"
-    evidence_gatherer = None
-    control_title = "NIS 800-53 AC-10 Concurrent Session Control"
-    control_id = "ac/10"
-    control_subtitle = "Concurrent Session Control"
+    evidence_gatherer = None # CUSTOMIZE
+    control_title = "CUSTOMIZE_INSERT_TITLE"
+    control_id = "CUSTOMIZE_INSERT_ID"
+    control_subtitle = "CUSTOMIZE_INSERT_SUBTITLE"
+    url_file = "CUSTOMIZE_INSERT_FILE" # usually this will be "manifest.xml"
+    content = \
+        "A list of the detected maximum number of allowable "\
+        + "concurrent login sessions" +\
+        "per host indexed by IP address"
+    author_name = "John Doe"
+    author_email = "jdoe@pistoncloud.com"
+    content_title = "Concurrent Sessions Limitations"
+    xml_root_tag = "maxConcurrentLogins"
+
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -54,7 +58,7 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         if self.entries is None:
             self.entries = []
 
-        super(NIST_800_53_ac10, self).get_evidence(req)
+        super(CONTROL_TEMPLATE, self).get_evidence(req)
 
         if self.evidence_gatherer is None:
             self.evidence_gatherer = concurrent_sessions.ConcurrentSessionsLimit()
@@ -63,13 +67,13 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
 
         self.time_updated = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
-
         newentry = cloudaudit.control.entry.BaseEntry()
 
-        newentry.title = \
-        "Concurrent Sessions Limitations"
+        newentry.title = self.__class__.content_title
 
-        newlink = self.url + "/" + "concurrentsessions.xml"
+        newlink = self.url + "/" + self.__class__.url_file
+
+        
         newentry.link = newlink
         newentry.link_rel = "related"
         newentry.link_type = "xml"
@@ -78,12 +82,9 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
 
         newentry.updated = self.time_updated
 
-        newentry.content = \
-        "A list of the detected maximum number of allowable "\
-        + "concurrent login sessions" +\
-        "per host indexed by IP address"
+        newentry.content = self.__class__.content
 
-        newentry.add_author("John Doe", "jdoe@pistoncc.com")
+        newentry.add_author(self.__class__.author_name, self.__class__.author_email)
 
         self.entries.append(newentry)
 
@@ -99,7 +100,7 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         if self.entries is None:
             self.get_evidence(None)
 
-        xml_str = super(NIST_800_53_ac10, self).get_manifest(None)
+        xml_str = super(CONTROL_TEMPLATE, self).get_manifest(None)
 
         return xml_str
 
@@ -110,4 +111,4 @@ class NIST_800_53_ac10(nist.NIST_800_53_Control):
         if self.evidence_data is None:
             self.evidence_data = {}
 
-        return self.get_xml_inventory_base(req, self.evidence_data, "maxConcurrentLogins")
+        return self.get_xml_inventory_base(req, self.evidence_data, self.__class__.xml_root_tag)

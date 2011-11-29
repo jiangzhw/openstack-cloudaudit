@@ -17,7 +17,7 @@
 #    under the License.
 
 
-from xml.dom.minidom import Document
+from time import gmtime, strftime
 from cloudaudit.control import nist
 from cloudaudit.evidence_engine import max_login_attempts
 import cloudaudit.api.ControlRegistry
@@ -69,7 +69,7 @@ class NIST_800_53_ac11(nist.NIST_800_53_Control):
 
         self.evidence_data = self.evidence_gatherer.get_evidence()
 
-        self.time_updated = "2010-01-13T18:30:02Z"
+        self.time_updated = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
         newentry = cloudaudit.control.entry.BaseEntry()
 
