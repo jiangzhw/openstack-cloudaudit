@@ -16,9 +16,10 @@
 # limitations under the License.
 
 from cloudaudit.control import nist
+import cloudaudit.api.ControlRegistry
 
 
-class GlossaryController(object):
+class GlossaryController(cloudaudit.api.wsgi.Middleware):
 
     """
         This class interrogates the registry to list out what regimes/controls
@@ -26,4 +27,33 @@ class GlossaryController(object):
 
     """
 
-    
+    # We override this primarily to add keystone authorization enforcement
+    # subclasses should not override this method or if they do they
+    # should always check keystone auth
+    @webob.dec.wsgify
+    def __call__(self, req):
+        token = keystone.token_create(
+                req, 'admin', req.str_GET['User'], req.str_GET['Password'])
+
+        response = self.process_request(req)
+        if response:
+            return response
+        response = req.get_response(self.application)
+        return self.process_response(response)
+
+    def process_request(self, req):
+        control_registry = cloudaudit.api.ControlRegistry.CONTROL_REGISTRY
+        controls = control_registry.get_all_controls()
+
+        path = req.path
+
+        for control in controls:
+            # if control.route begins with path
+            # then print out the control title
+#            if control.route
+            pass
+
+        if len(path) == len(self.route):
+            return self.get_manifest(req)
+        else:
+            return None
